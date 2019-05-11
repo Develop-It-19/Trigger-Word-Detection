@@ -1,3 +1,9 @@
+#Data Synthesis is an Effective way to Create Large Training Sets for Speech Problems.
+  #Specifically for Trigger word detection.
+#Using a Spectrogram and optionally a 1D conv layer is a common pre-processing step.
+  #Prior to passing audio data to an RNN, GRU or LSTM.
+#An End-to-end deep learning approach can be used to built a very effective trigger word detection system.
+
 #Import Dependencies
 import numpy as np
 from pydub import AudioSegment
@@ -203,7 +209,50 @@ def detect_triggerword(filename):
   
   return predictions
 
+chime_file = "audio_examples/chime.wav"
+def chime_on_activate(filename, predictions, threshold):
+  audio_clip = AudioSegment.from_wav(filename)
+  chime = AudioSegment.from_wav(chime_file)
+  Ty = predictions.shape[1]
+  
+  consecutive_timesteps = 0
+  
+  for i in range(Ty):
+    consecutive_timesteps += 1
+    
+    if predictions[0, i, 0] > threshold and consecutive_timesteps > 75:
+      audio_clip = audio_clip.overlay(chime, position = ((i / Ty) * audio_clip.duration_seconds) * 1000)
+      consecutive_timesteps = 0
+  
+  audio_clip.export("chime_output.wav", format = "wav")
 
+IPython.display.Audio("./raw_data/dev/1.wav")
+IPython.display.Audio("./raw_data/dev/2.wav")
 
+filename = "./raw_data/dev/1.wav"
+prediction = detect_triggerword(filename)
+chime_on_activation(filename, prediction, 0.5)
+IPython.display.Audio("./chime_output.wav")
 
+filename = "./raw_data/dev/2.wav"
+prediction = detect_triggerword(filename)
+chime_on_activation(filename, prediction, 0.5)
+IPython.display.Audio("./chime_output.wav")
+
+def preprocess_audio(filename):
+  padding = AudioSegment.silent(duration = 10000)
+  segment = AudioSegment.from_wav(filename)[:10000]
+  segment = padding.overlay(segment)
+  segment = segment.set_frame_rate(44100)
+  segment.export(filename, format = "wav")
+
+your_filename = "audio_examples/my_audio.wav"
+
+preprocess_audio(your_filename)
+IPython.display.Audio(your_filename)
+
+chime_threshold = 0.5
+prediction = detect_triggerword(your_filename)
+chime_on_activate(your_filename, prediction, chime_threshold)
+IPython.display.Audio("./chime_output.wav")
 
